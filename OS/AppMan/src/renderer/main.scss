@@ -1,0 +1,71 @@
+.MainHeader {
+  user-select: none;
+  -webkit-app-region: drag;
+}
+.noDrag {
+  -webkit-app-region: no-drag;
+}
+.systemBtn {
+  float: right;
+  margin-right: 20px;
+  line-height: 47px;
+}
+.systemBtn i {
+  font-size: 16px;
+  margin: 0 5px;
+}
+.MainHeader::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+.ant-menu {
+  float: left;
+}
+#app .ant-layout-header {
+  position: fixed;
+  width: 100%;
+  top: 0;
+}
+#app .ant-layout-content {
+  margin-top: 47px;
+}
+.ant-tabs-bar {
+  position: fixed;
+  width: 100%;
+}
+.ant-tabs-content {
+  margin-top: 40px;
+}
+#app #main.card-container > .ant-tabs-card > .ant-tabs-content {
+  height: 100%;
+  margin-top: 41px;
+}
+#app .ant-form {
+  background-color: #fff;
+}
+
+#addProgress .ant-form-item-children {
+  display: inline-block;
+  width: 100%;
+  & > .ant-input-number {
+    width: 100%;
+  }
+}
+.ant-table-row button {
+  margin: 2px;
+}
+#main .ant-table-body {
+  &::-webkit-scrollbar {
+    width: 6px; /*高宽分别对应横竖滚动条的尺寸*/
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: rgba(144, 147, 153, 0.5);
+  }
+  &::-webkit-scrollbar-track {
+    border-radius: 5px;
+    background: transparent;
+  }
+}
