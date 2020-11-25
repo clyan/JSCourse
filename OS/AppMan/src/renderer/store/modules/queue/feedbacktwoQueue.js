@@ -26,6 +26,9 @@ const mutations = {
 
     state.feedBackTwoQueue = feedBackTwoQueue;
   },
+  SET_FDTWOTIMESLICE(state, time) {
+    state.fdTwoTimeSlice = time;
+  },
   DELETE_FEEDBACKTWOQUEUE(state, progress = null) {
     state.feedBackTwoQueue.deQueue(progress);
     const feedBackTwoQueue = Object.assign(new Queue(), state.feedBackTwoQueue);

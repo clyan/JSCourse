@@ -21,6 +21,7 @@ const mutations = {
   },
   MFQS_SCHEDULINGPOLICY(state) {
     state.SchedulingPolicy = Policy.MFQS;
+    console.log(state.SchedulingPolicy);
   },
   HRRN_SCHEDULINGPOLICY(state) {
     state.SchedulingPolicy = Policy.HRRN;

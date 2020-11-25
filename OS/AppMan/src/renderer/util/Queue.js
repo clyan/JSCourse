@@ -2,7 +2,7 @@
 // tail 表示队列的结束位置。
 
 class Queue {
-  constructor(val = 20) {
+  constructor(val = 80) {
     this.data = [];
     this.len = val;
     this.head = -1;

@@ -40,6 +40,8 @@
 #app #main.card-container > .ant-tabs-card > .ant-tabs-content {
   height: 100%;
   margin-top: 41px;
+  position: relative;
+  z-index: 22;
 }
 #app .ant-form {
   background-color: #fff;

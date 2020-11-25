@@ -33,19 +33,44 @@
 
   let  currStatus = '';
 import columns from "@/model/Column"
-import { mapGetters, mapActions,mapMutations } from 'vuex';
-// import dataList from "../model/initData";
+  import {mapGetters, mapActions, mapMutations, mapState} from 'vuex';
 import progressStatus from "@/mixin/progressStatus"
-import ioModalMixin from "@/mixin/ioModal"
+  import IoModal from "../ioModal";
 export default {
   name: "ProgressList",
-  mixins:[ioModalMixin,progressStatus],
+  mixins:[progressStatus],
+  components:{
+    IoModal
+  },
   data() {
     return {
-      Policy
+      Policy,
+      visible: false,
+      PCB: {}
     };
   },
   methods:{
+    showModal(record) {
+      this.PCB = record;
+      this.visible = true;
+      this.startRun()
+    },
+    cancelModal() {
+      this.visible = false;
+      this.startRun()
+    },
+    execIo(da) {
+      this.cancelModal();
+      this.startRun()
+    },
+    startRun() {
+      if (!this.isStart) {
+        this.setTrueIsStart();
+        this.systemer.StartScheduling(this);
+      } else {
+        this.setFalseIsStart();
+      }
+    },
     pending(PCB) {
       this.setPcbToPending(PCB)
     },
@@ -54,7 +79,7 @@ export default {
       this.cancelModal()
     },
     ...mapMutations(["SET_PCB_TOACTIVEBLOCK"]),
-    ...mapActions(["setPcbToPending"])
+    ...mapActions(["setPcbToPending","setTrueIsStart", "setFalseIsStart",])
   },
   computed:{
     ColumnsData(){
@@ -62,13 +87,18 @@ export default {
         return columns;
       } else {
         return columns.filter((item, index)=> {
-          return item.dataIndex !== 'hrrf'
+          return item.dataIndex !== 'hrrf' && item.dataIndex !== 'ioTime'
         })
       }
     },
     ...mapGetters({
-        dataList: 'runQueue'
-    })
+        dataList: 'runQueue',
+      getSchedulingPolicy:"getSchedulingPolicy",
+      isStart: "isStart"
+    }),
+    ...mapState({
+      systemer: state => state.System.systemer
+    }),
   }
 };
 </script>

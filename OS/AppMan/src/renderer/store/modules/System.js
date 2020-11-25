@@ -11,6 +11,7 @@ import finish from "./queue/finishQueue";
 import run from "./queue/runQueue";
 import Status from "../../model/ProgressStatus";
 import initData from "../../model/initData";
+import Policy from "../../model/Policy";
 const state = {
   systemer: null, //全局系统控制
   isStart: false, //判断系统是否开始调度
@@ -19,6 +20,7 @@ const state = {
   pid: initData.length + 1, //全局pid，初始化设置为,初始值的长度（注意initData的）
   timeSlice: 5, //时间片，用于时间轮转算法
   finishMusic: null,
+  unwatch: function() {},
   ...activityBlock.state,
   ...activityReady.state,
   ...pending.state,
@@ -56,6 +58,12 @@ const mutations = {
     this.commit("CLEAR_ALL_QUEUE");
     state.systemer = new System(vm);
   },
+  SET_UNWATCHER(state, vm) {
+    state.unwatch = vm;
+  },
+  CLOSE_UNWATCHER(state, vm) {
+    state.unwatch();
+  },
   SET_TRUE_ISSTART(state, vm) {
     state.isStart = true;
   },
@@ -63,7 +71,9 @@ const mutations = {
     state.globalTime += 1;
   },
   SET_TIMER(state, timer) {
-    state.timer = timer;
+    state.timer = window.setInterval(() => {
+      this.commit("Add_TIME");
+    }, 1000);
   },
   DEL_TIMER(state) {
     state.timer = null;
@@ -71,12 +81,15 @@ const mutations = {
     state.isStart = false;
   },
   SET_TIMESLICE(state, time) {
+    this.commit("SET_FDTWOTIMESLICE", 2 * time);
+    this.commit("SET_FDTHREETIMESLICE", 3 * time);
     state.timeSlice = time;
   },
   SET_FALSE_ISSTART(state, vm) {
     state.isStart = false;
+    this.commit("CLOSE_UNWATCHER");
     window.clearInterval(state.timer);
-    state.globalTime = 0;
+    state.timer = null;
   },
   SET_PCB_TOPENDING(state, vm) {
     const pcb = new PCB(vm);

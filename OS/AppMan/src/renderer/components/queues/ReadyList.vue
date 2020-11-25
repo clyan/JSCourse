@@ -92,7 +92,7 @@
           return columns;
         } else {
           return columns.filter((item, index)=> {
-            return item.dataIndex !== 'hrrf'
+            return item.dataIndex !== 'hrrf' && item.dataIndex !== 'ioTime'
           })
         }
       },

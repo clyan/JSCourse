@@ -29,6 +29,9 @@ const mutations = {
 
     state.feedBackThreeQueue = feedBackThreeQueue;
   },
+  SET_FDTHREETIMESLICE(state, time) {
+    state.fdThreeTimeSlice = time;
+  },
   DELETE_FEEDBACKTHREEQUEUE(state, progress = null) {
     state.feedBackThreeQueue.deQueue(progress);
     const feedBackThreeQueue = Object.assign(

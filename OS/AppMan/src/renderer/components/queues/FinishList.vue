@@ -15,14 +15,13 @@
   </div>
 </template>
 <script>
-import ioModalMixin from "../../mixin/ioModal";
 import progressStatus from "@/mixin/progressStatus";
 import columns from "../../model/Column";
 import { mapGetters } from "vuex";
 
 export default {
   name: "FinishList",
-  mixins: [ioModalMixin, progressStatus],
+  mixins: [progressStatus],
   data() {
     return {
       columns
@@ -31,7 +30,7 @@ export default {
   computed: {
     ColumnsData(){
       return columns.filter((item, index)=> {
-        return item.dataIndex !== 'hrrf'
+        return item.dataIndex !== 'hrrf' && item.dataIndex !== 'ioTime'
       })
     },
     ...mapGetters({
@@ -39,7 +38,6 @@ export default {
     })
   },
   mounted() {
-    console.log(this.dataList);
   }
 };
 </script>

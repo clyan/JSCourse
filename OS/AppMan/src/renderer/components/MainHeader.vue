@@ -74,9 +74,11 @@ export default {
     },
     okRr(time) {
       this.$store.dispatch("setTimeSlice", time).then(res => {
-        this.$store.dispatch("set" + this.current);
+        this.$store.dispatch("set" + this.current).then(res1 => {
+          this.cancelRrModal();
+          this.changeRun();
+        });
       });
-      this.cancelRrModal();
     },
     execRr(da) {
       this.cancelRrModal();
@@ -93,17 +95,20 @@ export default {
     },
     handleClick(e) {},
     itemHandler(e) {
-      if (e.key === Policy.RR) {
-        this.$store.dispatch("set" + e.key);
-      }
-      if (e.key === Policy.RR) {
+      if (e.key === Policy.RR || e.key === Policy.MFQS) {
         this.showRrModal();
       } else {
         this.$store.dispatch("set" + e.key);
+        this.changeRun();
       }
     },
     toggleInfoView(info) {
       this.SET_INFOVIEW(info);
+    },
+    changeRun() {
+      if (this.isStart) {
+        this.startRun();
+      }
     },
     startRun() {
       if (!this.isStart) {

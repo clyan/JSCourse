@@ -27,6 +27,12 @@ export default [
     scopedSlots: { customRender: "hrrf" }
   },
   {
+    title: "阻塞时间",
+    dataIndex: "ioTime",
+    key: "ioTime",
+    scopedSlots: { customRender: "ioTime" }
+  },
+  {
     title: "进程状态",
     dataIndex: "status",
     key: "status",

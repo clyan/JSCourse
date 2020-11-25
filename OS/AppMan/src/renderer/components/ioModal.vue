@@ -47,7 +47,7 @@ export default {
   data() {
     return {
       confirmLoading: false,
-      ioTime: 0
+      ioTime: 5
     };
   },
   methods: {

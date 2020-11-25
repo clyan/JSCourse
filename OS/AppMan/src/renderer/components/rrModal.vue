@@ -2,7 +2,6 @@
   <a-modal
     title="设置时间片"
     :visible="visibleRr"
-    :confirm-loading="confirmLoading"
     :centered="true"
     okText="确定"
     cancelText="取消"
@@ -46,13 +45,11 @@ export default {
   props: ["visibleRr"],
   data() {
     return {
-      confirmLoading: false,
       rrTime: 5
     };
   },
   methods: {
     handleOk(e) {
-      this.confirmLoading = true;
       this.$emit("okRr", this.rrTime);
     },
     handleCancel(e) {

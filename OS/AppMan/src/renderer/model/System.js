@@ -83,19 +83,6 @@ class System {
     });
     $Store.commit("RESET_INITQUEUE", cacheList);
   }
-  changePolicy() {}
-  createGlobalTimer(vm, State, cb) {
-    let timer = null;
-    const $Store = vm.$store;
-    timer = window.setInterval(() => {
-      $Store.commit("RESET_INITQUEUE");
-    }, 1000);
-
-    if (State.timer == null) {
-      $Store.commit("SET_TIMER", timer);
-    }
-    cb();
-  }
   StartScheduling(vm) {
     switch (vm.$store.state.PolicyControl.SchedulingPolicy) {
       case Policy.FCFS:
@@ -129,23 +116,29 @@ class System {
   execIo(vm, val) {
     const State = vm.$store.state.System;
     const $Store = vm.$store;
-    for (let i = 0; i < $Store.getters.activityBlockQueue.length; i++) {
+    let len = $Store.getters.activityBlockQueue.length;
+    for (let i = 0; i < len; i++) {
       let activityBlockQueue = $Store.getters.activityBlockQueue[i];
-
-      if (val > activityBlockQueue.startIoTime + activityBlockQueue.ioTime) {
-        let ite = new PCB($Store.getters.activityBlockQueue[i]);
+      let ite = new PCB($Store.getters.activityBlockQueue[i]);
+      if (activityBlockQueue.ioTime == 1) {
         ite.setStatus(Status.ACTIVITY_READY);
         $Store.commit("DELETE_ACTIVITYBLOCKQUEUE", ite);
         $Store.commit("ADD_ACTIVITYREADYQUEUE", ite);
+      } else {
+        --ite.ioTime;
+        $Store.commit("DELETE_ACTIVITYBLOCKQUEUE", ite);
+        $Store.commit("ADD_ACTIVITYBLOCKQUEUE", ite);
       }
+    }
+  }
+  saveCurrentEXec(vm) {
+    if (!vm.runQueue.isEmpty()) {
     }
   }
   mfqsExec(vm) {
     const State = vm.$store.state.System;
     const $Store = vm.$store;
     let first = true;
-    let HRRFFirst = true;
-    let timer = null;
     let timeCache = 0;
     if (State.isStart) {
       const f = () => {
@@ -155,118 +148,115 @@ class System {
           !State.feedBackThreeQueue.isEmpty()
         ) {
           if (first) {
-            timer = window.setInterval(() => {
-              $Store.commit("Add_TIME");
-            }, 1000);
-
             if (State.timer == null) {
-              $Store.commit("SET_TIMER", timer);
+              $Store.commit("SET_TIMER");
             }
             first = false;
           }
           let out = false;
-          let unwatch = vm.$watch("$store.state.System.globalTime", val => {
-            //将未到达队列中的已到达，放入就绪队列中
-            this.execToReady(vm, val);
-            //执行IO进程
-            this.execIo(vm, val);
-            //如果当前没有运行中的进程，则添加进程
-            if (!out) {
-              let obj = null;
-              //多级队列按情况添加与删除
-              if (!State.activityReadyQueue.isEmpty()) {
-                obj = new PCB(State.activityReadyQueue.Front());
-                if (val > obj.arriveTime) {
-                  $Store.commit("DELETE_ACTIVITYREADYQUEUE");
-                  obj.setStatus(Status.RUN);
-                  $Store.commit("ADD_RUNQUEUE", obj);
-                  out = true;
-                }
-              } else if (!State.feedBackTwoQueue.isEmpty()) {
-                obj = new PCB(State.feedBackTwoQueue.Front());
-                if (val > obj.arriveTime) {
-                  $Store.commit("DELETE_FEEDBACKTWOQUEUE");
-                  obj.setStatus(Status.RUN);
-                  $Store.commit("ADD_RUNQUEUE", obj);
-                  out = true;
-                }
-              } else if (!State.feedBackThreeQueue.isEmpty()) {
-                obj = new PCB(State.feedBackThreeQueue.Front());
-                if (val > obj.arriveTime) {
-                  $Store.commit("DELETE_FEEDBACKTHREEQUEUE");
-                  obj.setStatus(Status.RUN);
-                  $Store.commit("ADD_RUNQUEUE", obj);
-                  out = true;
-                }
-              }
-            } else {
-              let runObj = State.runQueue.Front();
-              // 停止调度
-              if (runObj.status !== Status.RUN) {
-                unwatch();
-                $Store.commit("DELETE_RUNQUEUE");
-                f();
-              } else if (!runObj.isFinish()) {
-                let runObj1 = new PCB(runObj);
-                if (runObj1.level == 1) {
-                  if (timeCache >= vm.$store.state.System.timeSlice) {
-                    $Store.commit("DELETE_RUNQUEUE");
-                    runObj1.setStatus(Status.ACTIVITY_READY);
-                    runObj1.setLevel(2);
-                    $Store.commit("ADD_FEEDBACKTWOQUEUE", runObj1);
-                    timeCache = 0;
-                  } else {
-                    runObj1.setElapsedCpuTime(1);
-                    ++timeCache;
-                    $Store.commit("DELETE_RUNQUEUE");
-                    $Store.commit("ADD_RUNQUEUE", runObj1);
+          $Store.commit(
+            "SET_UNWATCHER",
+            vm.$watch("$store.state.System.globalTime", val => {
+              //将未到达队列中的已到达，放入就绪队列中
+              this.execToReady(vm, val);
+              //执行IO进程
+              this.execIo(vm, val);
+              //如果当前没有运行中的进程，则添加进程
+              if (!out) {
+                let obj = null;
+                //多级队列按情况添加与删除
+                if (!State.activityReadyQueue.isEmpty()) {
+                  obj = new PCB(State.activityReadyQueue.Front());
+                  if (val > obj.arriveTime) {
+                    $Store.commit("DELETE_ACTIVITYREADYQUEUE");
+                    obj.setStatus(Status.RUN);
+                    $Store.commit("ADD_RUNQUEUE", obj);
+                    out = true;
                   }
-                } else if (runObj1.level == 2) {
-                  console.log("bbb");
-                  if (timeCache >= vm.$store.state.System.fdTwoTimeSlice) {
-                    $Store.commit("DELETE_RUNQUEUE");
-                    runObj1.setStatus(Status.DELETE_FEEDBACKTWOQUEUE);
-                    runObj1.setLevel(3);
-                    $Store.commit("ADD_FEEDBACKTHREEQUEUE", runObj1);
-                    timeCache = 0;
-                  } else {
-                    runObj1.setElapsedCpuTime(1);
-                    ++timeCache;
-                    $Store.commit("DELETE_RUNQUEUE");
-                    $Store.commit("ADD_RUNQUEUE", runObj1);
+                } else if (!State.feedBackTwoQueue.isEmpty()) {
+                  obj = new PCB(State.feedBackTwoQueue.Front());
+                  if (val > obj.arriveTime) {
+                    $Store.commit("DELETE_FEEDBACKTWOQUEUE");
+                    obj.setStatus(Status.RUN);
+                    $Store.commit("ADD_RUNQUEUE", obj);
+                    out = true;
                   }
-                } else if (runObj1.level == 3) {
-                  if (
-                    !State.feedBackThreeQueue.isEmpty() &&
-                    timeCache >= vm.$store.state.System.fdThreeTimeSlice
-                  ) {
+                } else if (!State.feedBackThreeQueue.isEmpty()) {
+                  obj = new PCB(State.feedBackThreeQueue.Front());
+                  if (val > obj.arriveTime) {
                     $Store.commit("DELETE_FEEDBACKTHREEQUEUE");
-                    runObj1.setStatus(Status.ACTIVITY_READY);
-                    $Store.commit("ADD_RUNQUEUE", runObj1);
-                    timeCache = 0;
-                  } else {
-                    runObj1.setElapsedCpuTime(1);
-                    ++timeCache;
-                    $Store.commit("DELETE_RUNQUEUE");
-                    $Store.commit("ADD_RUNQUEUE", runObj1);
+                    obj.setStatus(Status.RUN);
+                    $Store.commit("ADD_RUNQUEUE", obj);
+                    out = true;
                   }
                 }
               } else {
-                timeCache = 0;
-                unwatch();
-                let runObj = new PCB(State.runQueue.Front());
-                runObj.setStatus(Status.FINISH);
+                let runObj = State.runQueue.Front();
+                // 停止调度
+                if (runObj.status !== Status.RUN) {
+                  $Store.commit("CLOSE_UNWATCHER");
+                  $Store.commit("DELETE_RUNQUEUE");
+                  f();
+                } else if (!runObj.isFinish()) {
+                  let runObj1 = new PCB(runObj);
+                  if (runObj1.level == 1) {
+                    if (timeCache >= vm.$store.state.System.timeSlice) {
+                      $Store.commit("DELETE_RUNQUEUE");
+                      runObj1.setStatus(Status.ACTIVITY_READY);
+                      runObj1.setLevel(2);
+                      $Store.commit("ADD_FEEDBACKTWOQUEUE", runObj1);
+                      timeCache = 0;
+                    } else {
+                      runObj1.setElapsedCpuTime(1);
+                      ++timeCache;
+                      $Store.commit("DELETE_RUNQUEUE");
+                      $Store.commit("ADD_RUNQUEUE", runObj1);
+                    }
+                  } else if (runObj1.level == 2) {
+                    if (timeCache >= vm.$store.state.System.fdTwoTimeSlice) {
+                      $Store.commit("DELETE_RUNQUEUE");
+                      runObj1.setStatus(Status.DELETE_FEEDBACKTWOQUEUE);
+                      runObj1.setLevel(3);
+                      $Store.commit("ADD_FEEDBACKTHREEQUEUE", runObj1);
+                      timeCache = 0;
+                    } else {
+                      runObj1.setElapsedCpuTime(1);
+                      ++timeCache;
+                      $Store.commit("DELETE_RUNQUEUE");
+                      $Store.commit("ADD_RUNQUEUE", runObj1);
+                    }
+                  } else if (runObj1.level == 3) {
+                    if (
+                      !State.feedBackThreeQueue.isEmpty() &&
+                      timeCache >= vm.$store.state.System.fdThreeTimeSlice
+                    ) {
+                      $Store.commit("DELETE_FEEDBACKTHREEQUEUE");
+                      runObj1.setStatus(Status.ACTIVITY_READY);
+                      $Store.commit("ADD_RUNQUEUE", runObj1);
+                      timeCache = 0;
+                    } else {
+                      runObj1.setElapsedCpuTime(1);
+                      ++timeCache;
+                      $Store.commit("DELETE_RUNQUEUE");
+                      $Store.commit("ADD_RUNQUEUE", runObj1);
+                    }
+                  }
+                } else {
+                  timeCache = 0;
+                  $Store.commit("CLOSE_UNWATCHER");
+                  let runObj = new PCB(State.runQueue.Front());
+                  runObj.setStatus(Status.FINISH);
 
-                $Store.commit("ADD_FINISHQUEUE", runObj);
-                $Store.commit("DELETE_RUNQUEUE");
-                $Store.commit("PLAY_MUSIC");
-                f();
+                  $Store.commit("ADD_FINISHQUEUE", runObj);
+                  $Store.commit("DELETE_RUNQUEUE");
+                  $Store.commit("PLAY_MUSIC");
+                  f();
+                }
               }
-            }
-          });
+            })
+          );
         } else {
           $Store.commit("SET_FALSE_ISSTART");
-          clearInterval(timer);
           return;
         }
       };
@@ -278,99 +268,106 @@ class System {
     const $Store = vm.$store;
     let first = true;
     let HRRFFirst = true;
-    let timer = null;
     let timeCache = 0;
+
     if (State.isStart) {
       const f = () => {
         if (!State.activityReadyQueue.isEmpty()) {
           if (first) {
-            timer = window.setInterval(() => {
-              $Store.commit("Add_TIME");
-            }, 1000);
-
             if (State.timer == null) {
-              $Store.commit("SET_TIMER", timer);
+              $Store.commit("SET_TIMER");
             }
             first = false;
           }
-          let out = false;
-          let unwatch = vm.$watch("$store.state.System.globalTime", val => {
-            //将未到达队列中的已到达，放入就绪队列中
-            this.execToReady(vm, val);
-            //执行IO进程
-            this.execIo(vm, val);
-            //如果当前没有运行中的进程，则添加进程
-            if (!out) {
-              const obj = new PCB(State.activityReadyQueue.Front());
-              if (val > obj.arriveTime) {
-                $Store.commit("DELETE_ACTIVITYREADYQUEUE");
-                obj.setStatus(Status.RUN);
-                $Store.commit("ADD_RUNQUEUE", obj);
-                out = true;
-                //如果当前是HRRF算法，则在
-                if (
-                  vm.$store.state.PolicyControl.SchedulingPolicy == Policy.HRRF
-                ) {
-                  const data = HRRF(vm.$store.getters.activityReadyQueue, vm);
+          let out = !!!State.runQueue.isEmpty();
+          $Store.commit(
+            "SET_UNWATCHER",
+            vm.$watch("$store.state.System.globalTime", val => {
+              //将未到达队列中的已到达，放入就绪队列中
+              this.execToReady(vm, val);
+              //执行IO进程
+              this.execIo(vm, val);
+              //如果当前没有运行中的进程，则添加进程
+              if (!out) {
+                const obj = new PCB(State.activityReadyQueue.Front());
+                if (val > obj.arriveTime) {
                   $Store.commit("DELETE_ACTIVITYREADYQUEUE");
-                  $Store.commit("RESET_ACTIVITYREADYQUEUE", data);
-                }
-              }
-            } else {
-              let runObj = State.runQueue.Front();
-              // 停止调度
-              if (runObj.status !== Status.RUN) {
-                unwatch();
-                $Store.commit("DELETE_RUNQUEUE");
-                f();
-              } else if (!runObj.isFinish()) {
-                let runObj1 = new PCB(runObj);
-                //当前是否是时间轮转
-                if (
-                  vm.$store.state.PolicyControl.SchedulingPolicy == Policy.RR
-                ) {
+                  obj.setStatus(Status.RUN);
+                  $Store.commit("ADD_RUNQUEUE", obj);
+                  out = true;
+                  //如果当前是HRRF算法，则在
                   if (
-                    !State.activityReadyQueue.isEmpty() &&
-                    timeCache >= vm.$store.state.System.timeSlice
+                    vm.$store.state.PolicyControl.SchedulingPolicy ==
+                    Policy.HRRF
                   ) {
-                    timeCache = 0;
-                    runObj1.setStatus(Status.ACTIVITY_READY);
-                    $Store.commit("DELETE_RUNQUEUE");
-                    $Store.commit("ADD_ACTIVITYREADYQUEUE", runObj1);
+                    const data = HRRF(vm.$store.getters.activityReadyQueue, vm);
+                    $Store.commit("DELETE_ACTIVITYREADYQUEUE");
+                    $Store.commit("RESET_ACTIVITYREADYQUEUE", data);
+                  }
+                }
+              } else {
+                let runObj = State.runQueue.Front();
+                // 停止调度
+                if (runObj.status !== Status.RUN) {
+                  $Store.commit("CLOSE_UNWATCHER");
+                  $Store.commit("DELETE_RUNQUEUE");
+                  f();
+                } else if (!runObj.isFinish()) {
+                  let runObj1 = new PCB(runObj);
+                  //当前是否是时间轮转
+                  if (
+                    vm.$store.state.PolicyControl.SchedulingPolicy == Policy.RR
+                  ) {
+                    if (
+                      !State.activityReadyQueue.isEmpty() &&
+                      timeCache >= vm.$store.state.System.timeSlice
+                    ) {
+                      timeCache = 0;
+                      runObj1.setStatus(Status.ACTIVITY_READY);
+                      $Store.commit("DELETE_RUNQUEUE");
+                      $Store.commit("ADD_ACTIVITYREADYQUEUE", runObj1);
+                    } else {
+                      timeCache++;
+                      runObj1.setElapsedCpuTime(1);
+                      $Store.commit("DELETE_RUNQUEUE");
+                      $Store.commit("ADD_RUNQUEUE", runObj1);
+                    }
                   } else {
-                    timeCache++;
                     runObj1.setElapsedCpuTime(1);
                     $Store.commit("DELETE_RUNQUEUE");
                     $Store.commit("ADD_RUNQUEUE", runObj1);
                   }
                 } else {
-                  runObj1.setElapsedCpuTime(1);
+                  if (
+                    vm.$store.state.PolicyControl.SchedulingPolicy == Policy.RR
+                  ) {
+                    timeCache = 0;
+                  }
+                  $Store.commit("CLOSE_UNWATCHER");
+                  let runObj = new PCB(State.runQueue.Front());
+                  runObj.setStatus(Status.FINISH);
+                  $Store.commit("ADD_FINISHQUEUE", runObj);
                   $Store.commit("DELETE_RUNQUEUE");
-                  $Store.commit("ADD_RUNQUEUE", runObj1);
+                  $Store.commit("PLAY_MUSIC");
+                  if (
+                    $Store.state.PolicyControl.SchedulingPolicy == Policy.HPF
+                  ) {
+                    let data = HPF($Store.getters.activityReadyQueue);
+                    $Store.commit("RESET_ACTIVITYREADYQUEUE", data);
+                  }
+                  if (
+                    $Store.state.PolicyControl.SchedulingPolicy == Policy.SJF
+                  ) {
+                    let data = SJF($Store.getters.activityReadyQueue);
+                    $Store.commit("RESET_ACTIVITYREADYQUEUE", data);
+                  }
+                  f();
                 }
-              } else {
-                if (
-                  vm.$store.state.PolicyControl.SchedulingPolicy == Policy.RR
-                ) {
-                  timeCache = 0;
-                }
-                unwatch();
-                let runObj = new PCB(State.runQueue.Front());
-                runObj.setStatus(Status.FINISH);
-                $Store.commit("ADD_FINISHQUEUE", runObj);
-                $Store.commit("DELETE_RUNQUEUE");
-                $Store.commit("PLAY_MUSIC");
-                if ($Store.state.PolicyControl.SchedulingPolicy == Policy.HPF) {
-                  let data = HPF($Store.getters.activityReadyQueue);
-                  $Store.commit("RESET_ACTIVITYREADYQUEUE", data);
-                }
-                f();
               }
-            }
-          });
+            })
+          );
         } else {
           $Store.commit("SET_FALSE_ISSTART");
-          clearInterval(timer);
           return;
         }
       };

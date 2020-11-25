@@ -2,6 +2,19 @@
 
 采用 eletron-vue 进行开发
 
+环境安装: node: v14.15.0   npm: 6.14.9
+
+[AppMan](https://github.com/ywymoshi/JSCourse/tree/master/OS/AppMan)
+
+``````
+# 切换到目录下
+cd apppman
+# 安装依赖
+npm intall
+# 执行
+npm run dev
+``````
+
 ## 作业调度
 
 作业调度又称高级调度，不涉及处理机的分配，主要任务是按一定的原则从外存上处于后备状态的作业中挑选一个（或多个）作业调入主存，为其分配内存、I/O 设备等必要的资源，并建立相应的进程，安排在就绪队列上，以使进程获得竞争处理机的权利。
